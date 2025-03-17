@@ -85,7 +85,6 @@ void loop() {
                 }
 
                 size_t bytes_received = state.active_client.readBytes(state.ins_buffer, INS_BUFFER_SIZE);
-                Serial.println("...");
                 Serial.print("Read ");
                 Serial.print(bytes_received);
                 Serial.println(" bytes of instruction data.");
@@ -162,10 +161,8 @@ void loop() {
     if(next_eoi_idx >= state.ins_buffer_len) { // if there are no more bytes left, inform the client and await instructions.
         Serial.println("Ran out of instructions... awaiting more.");
         state.awaiting_instructions = true;
-        Serial.print(state.active_client.connected());
         uint8_t out_of_instruction_bytes[16] = {0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; 
         size_t bytes_written = state.active_client.write(out_of_instruction_bytes, 16); // send out of instruction byte
-        Serial.print(state.active_client.connected());
         state.active_client.flush();
         return;
     }
@@ -184,15 +181,6 @@ void loop() {
     // parse 2 big endian bytes into unsigned short
     short left_motor_steps = (static_cast<short> (state.ins_buffer[state.buffer_idx]) << 8 | state.ins_buffer[state.buffer_idx + 1]);
     short right_motor_steps = (static_cast<short> (state.ins_buffer[state.buffer_idx + 2]) << 8 | state.ins_buffer[state.buffer_idx + 3]);
-
-    // if((left_motor_steps) > 100 || abs(right_motor_steps) > 100) {
-    if(101 > 100) {
-        Serial.print("Steps: ");
-        Serial.print(left_motor_steps);
-        Serial.print(" <-> ");
-        Serial.print(right_motor_steps);
-        Serial.println("");
-    }
 
     /*
     Serial.print("We've got some motor steps: ");
