@@ -9,7 +9,7 @@ Next, clone and enter this project's repository, and run `make build`. If all go
 
 
 ## Configuration ⚙️
-You can edit Blot-Bot's parameters in the [definitions.h](LINK) file.
+You can edit Blot-Bot's parameters in the [definitions.h](https://github.com/blot-bot-org/firmware/blob/master/src/definitions.h) file.
 
 You must set the following parameters:
 - **L_PULSE**, **L_DIRECTION**, **L_ENABLE** - the pulse, direction, and enable GPIO pin for the left motor.
