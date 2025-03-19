@@ -49,13 +49,9 @@ void loop() {
     }
 
 
+    // if(!(state.last_known_connected && state.active_client.connected())) { return; } // if there is no active socket client
     
-    if(!(state.last_known_connected && state.active_client.connected())) { return; } // if there is no active socket client
     
-
-    // beyond this point, we know we have an active socket client. see flowchart.
-
-
     if(state.active_client.available() != 0) { // we have bytes available for reading
         char header_byte = state.active_client.read();
         if(header_byte == 0xFF) {
@@ -70,10 +66,11 @@ void loop() {
                 BotState::reset_state(&state);
 
                 // load any other useful initialising parameters here.
-                unsigned char header_bytes[17];
-                TcpServer::gen_header_bytes(header_bytes, sizeof(header_bytes));
+                unsigned char header_bytes[20];
+                TcpServer::gen_header_bytes(header_bytes, sizeof(header_bytes), state.overall_instructions_completed);
 
                 state.active_client.write(header_bytes, sizeof(header_bytes));
+                Serial.println("Send header bbytes!");
                 
                 return; // will keep iterating until instructions received
             }
@@ -99,13 +96,15 @@ void loop() {
 
             case 0x02: {
                 Serial.println("The client has indicated the drawing has finished. The client will be disconnected.");
+
                 state.active_client.stop();
                 state.last_known_connected = false;
+                state.overall_instructions_completed = 0;
 
                 return;
             }
 
-            case 0x03: {
+            case 0x04: {
                 char pause_byte = state.active_client.read();
                 if(pause_byte == -1) {
                     Serial.println("Error reading socket data. The client sent a pause header but didn't specify the state.");
@@ -123,6 +122,11 @@ void loop() {
                 Serial.println(" the drawing execution.");
 
                 state.paused = pause_flag;
+
+
+                unsigned char pause_feedback_bytes[6];
+                TcpServer::gen_pause_feedback_bytes(pause_feedback_bytes, sizeof(pause_feedback_bytes), state.paused, state.overall_instructions_completed);
+                state.active_client.write(pause_feedback_bytes, sizeof(pause_feedback_bytes));
 
                 return;
             }
@@ -147,10 +151,12 @@ void loop() {
 
         return;
     }
+    
 
+    // now that we have completed an instruction, check if the client is still connected. if not, we pause instruction execution.
+    if(!(state.last_known_connected && state.active_client.connected())) { return; } // if there is no active socket client
     
     // if we are here the motors had no movement, so we need to move on to the next instruction
-    
 
     if(state.paused) {
         return; // if the bot is paused, don't execute anymore motor instructions
@@ -161,9 +167,8 @@ void loop() {
     if(next_eoi_idx >= state.ins_buffer_len) { // if there are no more bytes left, inform the client and await instructions.
         Serial.println("Ran out of instructions... awaiting more.");
         state.awaiting_instructions = true;
-        uint8_t out_of_instruction_bytes[16] = {0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; 
-        size_t bytes_written = state.active_client.write(out_of_instruction_bytes, 16); // send out of instruction byte
-        state.active_client.flush();
+        state.active_client.write(0x03); // send out of instruction byte
+
         return;
     }
 
@@ -199,6 +204,7 @@ void loop() {
     left_motor.setSpeed(get_left_motor_speed(left_motor_steps, right_motor_steps));
     right_motor.setSpeed(get_right_motor_speed(left_motor_steps, right_motor_steps));
 
+    state.overall_instructions_completed++;
 
     uint8_t feedback_bytes[5];
     TcpServer::gen_feedback_bytes(feedback_bytes, sizeof(feedback_bytes), state.buffer_idx);

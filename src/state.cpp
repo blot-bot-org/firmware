@@ -11,6 +11,7 @@ namespace BotState {
         state.last_known_connected = false;
 
         reset_state(&state);
+        state.overall_instructions_completed = 0;
 
         return state;
     }
