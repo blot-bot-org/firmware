@@ -10,7 +10,7 @@
 #define NW_PASSWORD "network_password"
 #define SOCKET_PORT 8180
 
-#define MAX_MOTOR_SPEED 300
+#define MAX_MOTOR_SPEED 500
 #define MIN_PULSE_WIDTH 300 // should consider dropping this
 
 #define BAUD_RATE 115200

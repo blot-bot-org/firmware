@@ -45,6 +45,9 @@ void loop() {
     if (state.last_known_connected && !state.active_client.connected()) {
         Serial.println("- The client has disconnected!");
         state.active_client.stop();
+
+        // TODO: Send bytes here to say currently drawing.
+
         state.last_known_connected = false;
     }
 
