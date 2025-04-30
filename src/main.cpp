@@ -36,8 +36,9 @@ void loop() {
             state.last_known_connected = true;
             Serial.println("+ The client has connected!");
         } else { // otherwise it's another client trying to join. we will just shut it down. ideally we should send an error message.
-          WiFiClient tc = socket_server.available();
-          tc.stop();
+            WiFiClient tc = socket_server.available();
+            tc.write((uint8_t) 0x00); // this should also write protocol: TODO!
+            tc.stop();
         }
     }
 
@@ -73,7 +74,9 @@ void loop() {
                 TcpServer::gen_header_bytes(header_bytes, sizeof(header_bytes), state.overall_instructions_completed);
 
                 state.active_client.write(header_bytes, sizeof(header_bytes));
-                Serial.println("Send header bbytes!");
+                Serial.println("Send header bytes!");
+
+                state.active_client.write(0x03); // ask for the initial instructions
                 
                 return; // will keep iterating until instructions received
             }
