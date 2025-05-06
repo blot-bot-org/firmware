@@ -1,3 +1,4 @@
+#include <cstring>
 #include <definitions.h>
 #include <communications.h>
 #include <motor_controller.h>
@@ -53,7 +54,7 @@ void loop() {
     }
 
 
-    // if(!(state.last_known_connected && state.active_client.connected())) { return; } // if there is no active socket client
+    if(!(state.last_known_connected && state.active_client.connected())) { return; } // if there is no active socket client
     
     
     if(state.active_client.available() != 0) { // we have bytes available for reading
@@ -87,15 +88,22 @@ void loop() {
                     esp32_exit();
                 }
 
+                memset(state.ins_buffer, 0x00, INS_BUFFER_SIZE);
                 size_t bytes_received = state.active_client.readBytes(state.ins_buffer, INS_BUFFER_SIZE);
                 Serial.print("Read ");
                 Serial.print(bytes_received);
                 Serial.println(" bytes of instruction data.");
                 state.awaiting_instructions = false;
                 state.ins_buffer_len = bytes_received;
-                state.buffer_idx = 1;// gotta ignore the header byte idk why it's not being removed from the buffer
-                // when im LITERALLY READING IT EARLIER but honestly idec spent too long on this lets just make it work
 
+                // okay so sometimes the 0x01 prefix is there, sometimes it isn't.
+                // so what ill do is check if the length of the instruction bytes is a multiple
+                // of 5, if not, trim it to be so. this limits instructions to not be penup/pendown.
+                
+                state.buffer_idx = state.ins_buffer_len % 5;
+
+                // gotta ignore the header byte idk why it's not being removed from the buffer
+                // when im LITERALLY READING IT EARLIER but honestly idec spent too long on this lets just make it work
 
                 return; // next iter will start drawing
             }
@@ -133,6 +141,17 @@ void loop() {
                 unsigned char pause_feedback_bytes[6];
                 TcpServer::gen_pause_feedback_bytes(pause_feedback_bytes, sizeof(pause_feedback_bytes), state.paused, state.overall_instructions_completed);
                 state.active_client.write(pause_feedback_bytes, sizeof(pause_feedback_bytes));
+
+                return;
+            }
+
+            case 0x05: {
+                Serial.println("Client cancelled drawing. The client will be disconnected.");
+                state.active_client.write(0x05); // ask for the initial instructions
+
+                state.active_client.stop();
+                state.last_known_connected = false;
+                state.overall_instructions_completed = 0;
 
                 return;
             }
