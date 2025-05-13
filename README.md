@@ -1,11 +1,11 @@
 # Blot Bot Firmware
 
-This is the firmware for the Blot Bot drawing machine. It is technically written in C++ due to the libraries used, however all the code I wrote followed C code constructs.
+This is the firmware for the Blot Bot drawing machine. It is written in C++ due to the libraries used, however most of the code I wrote followed C code constructs.
 
 
 ## Installation / Prerequisites 📥
 You must install the PlatformIO core. The [install page](https://platformio.org/install) suggests installation via VSCode. Alternatively, you could install it on your system, via [the documentation](https://docs.platformio.org/en/latest/core/installation/index.html).<br>
-Next, clone and enter this project's repository, and run `make build`. If all goes well, you will see: *'Successfully created esp32 image.'*
+Next, clone and enter this project's repository, and run `make build`. If all goes well, you will see (somewhere) the message: *'Successfully created esp32 image.'*
 
 
 ## Configuration ⚙️
@@ -19,14 +19,15 @@ You must set the following parameters:
 - **NW_PASSWORD** - the password of the network the ESP32 will connect to.
 
 You can optionally edit:
-- **SOCKET_PORT** - the port the socket server will be made on.
-- **MAX_MOTOR_SPEED** - the maximum steps/second the motors will move.
-- **MIN_PULSE_WIDTH** - the minimum step pulse width, in μs. (should be configured accordingly to your stepper motors)
-- **INS_BUFFER_SIZE** - can be adjusted depending on the RAM of your specific ESP32 model.
+- **SOCKET_PORT** - the port the socket server will be made on. *(default 8180)*
+- **MAX_MOTOR_SPEED** - the maximum steps/second the motors will move. *(default 500)*
+- **MIN_PULSE_WIDTH** - the minimum step pulse width, in μs. (should be configured accordingly to your stepper motors) *(default 300)*
+- **INS_BUFFER_SIZE** - can be adjusted depending on the RAM of your specific ESP32 model. *(default 32768)*
 
+*Note: From experience, anything under 8192 bytes can cause network instability. Anything over 32768 bytes can take more than a second to send, which results in ink-blots on the page, depending on the pen.*
 
 ## Flashing ⚡
-To flash the firmware to your ESP32, run `make upload`
+To flash the firmware to your ESP32, connect it to your computer and run `make upload`
 To monitor its serial ouput, run `make monitor`
 
 To upload and then monitor, you can run `make upload_monitor`
