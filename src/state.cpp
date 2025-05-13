@@ -3,7 +3,14 @@
 #include <definitions.h>
 
 namespace BotState {
-
+    
+    ///
+    /// Creates a new state object.
+    /// Default values are defined in this function.
+    /// 
+    /// # Returns:
+    /// - A new state object, with default values
+    ///
     State create() {
         State state;
 
@@ -16,6 +23,16 @@ namespace BotState {
         return state;
     }
 
+    ///
+    /// Resets a state object.
+    /// Default reset values are defined in this function.
+    /// 
+    /// # Parameters:
+    /// - `state`: The current state object
+    ///
+    /// # Returns:
+    /// - A new state object, with default values
+    ///
     void reset_state(State *state) {
         memset(state->ins_buffer, 0x00, INS_BUFFER_SIZE); // clear instruction buffer
     

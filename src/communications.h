@@ -2,6 +2,10 @@
 #include <definitions.h>
 #include <interface.h>
 
+//! 
+//! Comments for functions can be found in the .cpp file.
+//!
+
 namespace LocalNetwork {
     void wifi_connect();
 }
