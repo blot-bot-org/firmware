@@ -18,6 +18,9 @@ AccelStepper right_motor = init_stepper_motor(R_PULSE, R_DIRECTION);
 /* ------------------ */
 
 
+/// 
+/// Called when the ESP32 initialised.
+///
 void setup() {
     Serial.begin(BAUD_RATE);
     pinMode(LED, OUTPUT);
@@ -30,7 +33,11 @@ void setup() {
 }
 
 
+/// 
+/// Loops on the ESP32.
+///
 void loop() {
+
     if (socket_server.hasClient()) {
         if(!state.last_known_connected) { // client trying to join, when we have no active client. therefore register it.
             state.active_client = socket_server.available();

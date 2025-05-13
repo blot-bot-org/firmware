@@ -2,6 +2,10 @@
 #include <AccelStepper.h>
 #include <cmath>
 
+//! 
+//! Comments for functions can be found in the .cpp file.
+//!
+
 float get_left_motor_speed(short left_steps, short right_steps);
 float get_right_motor_speed(short left_steps, short right_steps);
 bool has_movement(AccelStepper *lm, AccelStepper *rm);
