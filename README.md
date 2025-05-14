@@ -4,7 +4,7 @@ This is the firmware for the Blot Bot drawing machine. It is written in C++ due 
 
 
 ## Installation / Prerequisites 📥
-You must install the PlatformIO core. The [install page](https://platformio.org/install) suggests installation via VSCode. Alternatively, you could install it on your system, via [the documentation](https://docs.platformio.org/en/latest/core/installation/index.html).<br>
+You must install the PlatformIO core. The [install page](https://platformio.org/install) suggests installation via VSCode. Alternatively, you could install it on your system, via [the documentation](https://docs.platformio.org/en/latest/core/installation/index.html) as I have done. If you install it on your system, you can use the `Makefile` I have provided.<br>
 Next, clone and enter this project's repository, and run `make build`. If all goes well, you will see (somewhere) the message: *'Successfully created esp32 image.'*
 
 
@@ -27,6 +27,10 @@ You can optionally edit:
 *Note: From experience, anything under 8192 bytes can cause network instability. Anything over 32768 bytes can take more than a second to send, which results in ink-blots on the page, depending on the pen.*
 
 ## Flashing ⚡
+### VSCode
+If you have installed PlatformIO via VSCode, you can use the appropriate buttons on the sidebar to flash and monitor the ESP32.
+
+### PlatformIO on your system (with Makefile)
 To flash the firmware to your ESP32, connect it to your computer and run `make upload`
 To monitor its serial ouput, run `make monitor`
 
