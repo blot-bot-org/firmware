@@ -24,6 +24,8 @@ AccelStepper right_motor = init_stepper_motor(R_PULSE, R_DIRECTION);
 void setup() {
     Serial.begin(BAUD_RATE);
     pinMode(LED, OUTPUT);
+    gondola_servo.attach(33);
+    gondola_servo.write(0); // pen up
 
     BotState::reset_state(&state);
 
@@ -55,7 +57,7 @@ void loop() {
         Serial.println("- The client has disconnected!");
         state.active_client.stop();
 
-        // TODO: Send bytes here to say currently drawing.
+        gondola_servo.write(0); // pen up
 
         state.last_known_connected = false;
     }
@@ -76,6 +78,7 @@ void loop() {
             case 0x00: {
                 Serial.println("A new client has initialised a drawing. Resetting the firmware state...");
                 BotState::reset_state(&state);
+                gondola_servo.write(0); // pen up
 
                 // load any other useful initialising parameters here.
                 unsigned char header_bytes[20];
@@ -121,6 +124,7 @@ void loop() {
                 state.active_client.stop();
                 state.last_known_connected = false;
                 state.overall_instructions_completed = 0;
+                gondola_servo.write(0); // pen up
 
                 return;
             }
@@ -159,6 +163,7 @@ void loop() {
                 state.active_client.stop();
                 state.last_known_connected = false;
                 state.overall_instructions_completed = 0;
+                gondola_servo.write(0); // pen up
 
                 return;
             }
@@ -218,6 +223,19 @@ void loop() {
     // parse 2 big endian bytes into unsigned short
     short left_motor_steps = (static_cast<short> (state.ins_buffer[state.buffer_idx]) << 8 | state.ins_buffer[state.buffer_idx + 1]);
     short right_motor_steps = (static_cast<short> (state.ins_buffer[state.buffer_idx + 2]) << 8 | state.ins_buffer[state.buffer_idx + 3]);
+    if (command_length == 5 && state.ins_buffer[state.buffer_idx + 4] == 0x0A || state.ins_buffer[state.buffer_idx + 4] == 0x0B) {
+        
+        if(state.ins_buffer[state.buffer_idx + 4] == 0x0A) {
+            gondola_servo.write(0);
+            Serial.println("PEN UP!");
+            delay(300);
+        } else {
+            gondola_servo.write(90);
+            Serial.println("PEN DOWN!");
+            delay(300);
+        }
+
+    }
 
     /*
     Serial.print("We've got some motor steps: ");
