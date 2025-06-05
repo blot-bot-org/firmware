@@ -7,6 +7,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <AccelStepper.h>
+#include <ESP32Servo.h>
 
 
 /* ----- globals ----- */
@@ -15,6 +16,7 @@ BotState::State state;
 
 AccelStepper left_motor = init_stepper_motor(L_PULSE, L_DIRECTION);
 AccelStepper right_motor = init_stepper_motor(R_PULSE, R_DIRECTION);
+Servo gondola_servo;
 /* ------------------ */
 
 
