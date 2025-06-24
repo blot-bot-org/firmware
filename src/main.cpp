@@ -46,7 +46,7 @@ void loop() {
         if(!state.last_known_connected) { // client trying to join, when we have no active client. therefore register it.
             state.active_client = socket_server.available();
             state.last_known_connected = true;
-            Serial.println("+ The client has connected!");
+            Serial.println("[debug] The client has connected!");
         } else { // otherwise it's another client trying to join. we will just shut it down. ideally we should send an error message.
             WiFiClient tc = socket_server.available();
             tc.write((uint8_t) 0x00); // this should also write protocol: TODO!
@@ -56,7 +56,7 @@ void loop() {
 
     // if the socket was connected last iter, but isn't now, it just left. therefore deregister it.
     if (state.last_known_connected && !state.active_client.connected()) {
-        Serial.println("- The client has disconnected!");
+        Serial.println("[debug] The client has disconnected!");
         state.active_client.stop();
 
         gondola_servo.write(0); // pen up
@@ -71,14 +71,14 @@ void loop() {
     if(state.active_client.available() != 0) { // we have bytes available for reading
         char header_byte = state.active_client.read();
         if(header_byte == 0xFF) {
-            Serial.println("Error reading header byte from client. Byte was said to be available, but wasn't.");
+            Serial.println("[err] Error reading header byte from client. Byte was said to be available, but wasn't.");
             esp32_exit();
         }
 
         // we check the header byte to see what the client is intending
         switch(header_byte) {
             case 0x00: {
-                Serial.println("A new client has initialised a drawing. Resetting the firmware state...");
+                Serial.println("[debug] A new client has initialised a drawing. Resetting the firmware state...");
                 BotState::reset_state(&state);
                 gondola_servo.write(0); // pen up
 
@@ -87,7 +87,7 @@ void loop() {
                 TcpServer::gen_header_bytes(header_bytes, sizeof(header_bytes), state.overall_instructions_completed);
 
                 state.active_client.write(header_bytes, sizeof(header_bytes));
-                Serial.println("Send header bytes!");
+                Serial.println("[debug] Send header bytes!");
 
                 state.active_client.write(0x03); // ask for the initial instructions
                 
@@ -96,13 +96,13 @@ void loop() {
 
             case 0x01: {
                 if(state.active_client.available() > INS_BUFFER_SIZE) {
-                    Serial.println("Error receiving instructions. Client sent more bytes than buffer can handle.");
+                    Serial.println("[err] Error receiving instructions. Client sent more bytes than buffer can handle.");
                     esp32_exit();
                 }
 
                 memset(state.ins_buffer, 0x00, INS_BUFFER_SIZE);
                 size_t bytes_received = state.active_client.readBytes(state.ins_buffer, INS_BUFFER_SIZE);
-                Serial.print("Read ");
+                Serial.print("[debug] Read ");
                 Serial.print(bytes_received);
                 Serial.println(" bytes of instruction data.");
                 state.awaiting_instructions = false;
@@ -121,7 +121,7 @@ void loop() {
             }
 
             case 0x02: {
-                Serial.println("The client has indicated the drawing has finished. The client will be disconnected.");
+                Serial.println("[debug] The client has indicated the drawing has finished. The client will be disconnected.");
 
                 state.active_client.stop();
                 state.last_known_connected = false;
@@ -134,13 +134,13 @@ void loop() {
             case 0x04: {
                 char pause_byte = state.active_client.read();
                 if(pause_byte == -1) {
-                    Serial.println("Error reading socket data. The client sent a pause header but didn't specify the state.");
+                    Serial.println("[err] Error reading socket data. The client sent a pause header but didn't specify the state.");
                     esp32_exit();
                 }
                 // only 0x00 unpauses, anything else pauses technically. ill classify this as a feature.
                 bool pause_flag = pause_byte;
 
-                Serial.print("The client has ");
+                Serial.print("[debug] The client has ");
                 if(pause_flag) {
                     Serial.print("paused");
                 } else {
@@ -159,7 +159,7 @@ void loop() {
             }
 
             case 0x05: {
-                Serial.println("Client cancelled drawing. The client will be disconnected.");
+                Serial.println("[debug] Client cancelled drawing. The client will be disconnected.");
                 state.active_client.write(0x05); // ask for the initial instructions
 
                 state.active_client.stop();
@@ -171,7 +171,7 @@ void loop() {
             }
 
             default: {
-                Serial.println("Error receiving client data. The header byte was invalid.");
+                Serial.println("[err] Error receiving client data. The header byte was invalid.");
                 esp32_exit();
             }
         }
@@ -204,7 +204,7 @@ void loop() {
     // get next idx of 0x0C (end of instruction) byte
     int next_eoi_idx = state.buffer_idx + 4; // jump 4 movement bytes ahead to where the 0x0C will be at or near
     if(next_eoi_idx >= state.ins_buffer_len) { // if there are no more bytes left, inform the client and await instructions.
-        Serial.println("Ran out of instructions... awaiting more.");
+        Serial.println("[debug] Ran out of instructions... awaiting more.");
         state.awaiting_instructions = true;
         state.active_client.write(0x03); // send out of instruction byte
 
@@ -218,7 +218,7 @@ void loop() {
     
     unsigned char command_length = next_eoi_idx - (state.buffer_idx);
     if(command_length < 4) {
-        Serial.println("Error reading instruction. The instruction was not at least 4 bytes, so the movement is unknown.");
+        Serial.println("[err] Error reading instruction. The instruction was not at least 4 bytes, so the movement is unknown.");
         esp32_exit();
     }
     
@@ -229,23 +229,21 @@ void loop() {
         
         if(state.ins_buffer[state.buffer_idx + 4] == 0x0A) {
             gondola_servo.write(0);
-            Serial.println("PEN UP!");
             delay(300);
         } else {
             gondola_servo.write(90);
-            Serial.println("PEN DOWN!");
             delay(300);
         }
 
     }
 
     /*
-    Serial.print("We've got some motor steps: ");
+    Serial.print("[debug] Running: ");
     Serial.print(left_motor_steps);
     Serial.print("<->");
     Serial.println(right_motor_steps);
 
-    Serial.print("New command: ");
+    Serial.print("New command as int: ");
     Serial.println((int) command_length);
     */
 

@@ -16,7 +16,7 @@ namespace LocalNetwork {
         WiFi.begin(NW_SSID, NW_PASSWORD);
 
         // attempt to connect to wifi, with timeout
-        Serial.print("Attempting to connect to WiFi...");
+        Serial.print("[debug] Attempting to connect to WiFi...");
         unsigned char attempts = 0;
         while(WiFi.status() != WL_CONNECTED) {
             Serial.print(".");
@@ -24,14 +24,14 @@ namespace LocalNetwork {
 
             // if attempted to connect for more than 30 (60*0.5) seconds...
             if(attempts > 60) {
-                Serial.println("\nError connecting to the network. Are you sure the SSID and password are correct?");
+                Serial.println("\n[err] Error connecting to the network. Are you sure the SSID and password are correct?");
                 esp32_exit();
             }
 
             delay(500);
         }
 
-        Serial.print("\nWiFi connected established with local IP: ");
+        Serial.print("\n[debug] WiFi connected established with local IP: ");
         Serial.println(WiFi.localIP());
     }
 }
@@ -52,7 +52,7 @@ namespace TcpServer {
     ///
     WiFiServer generate_server(int port) {
         if(port <= 1000 || port >= 65536) {
-            Serial.println("Error starting WiFiServer. Port " + String(port) + " is out of range 1001-65535.");
+            Serial.println("[err] Error starting WiFiServer. Port " + String(port) + " is out of range 1001-65535.");
             esp32_exit();
         }
 
@@ -73,7 +73,7 @@ namespace TcpServer {
         const unsigned char bytes_needed = 18;
 
         if(size < bytes_needed) {
-            Serial.println("Error generating header bytes. The buffer for populating the header is too small.");
+            Serial.println("[err] Error generating header bytes. The buffer for populating the header is too small.");
             esp32_exit();
         }
 
@@ -99,7 +99,7 @@ namespace TcpServer {
         const unsigned char bytes_needed = 5;
 
         if(size < bytes_needed) {
-            Serial.println("Error generating feedback bytes. The buffer for populating the feedback is too small.");
+            Serial.println("[err] Error generating feedback bytes. The buffer for populating the feedback is too small.");
             esp32_exit();
         }
 
@@ -121,7 +121,7 @@ namespace TcpServer {
         const unsigned char bytes_needed = 5;
 
         if(size < bytes_needed) {
-            Serial.println("Error generating feedback bytes. The buffer for populating the feedback is too small.");
+            Serial.println("[err] Error generating feedback bytes. The buffer for populating the feedback is too small.");
             esp32_exit();
         }
 
