@@ -26,7 +26,7 @@ Servo gondola_servo;
 void setup() {
     Serial.begin(BAUD_RATE);
     pinMode(LED, OUTPUT);
-    gondola_servo.attach(33);
+    gondola_servo.attach(SERVO);
     gondola_servo.write(SERVO_PENUP); // pen up
 
     BotState::reset_state(&state);

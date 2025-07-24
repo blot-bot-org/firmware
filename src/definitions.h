@@ -12,6 +12,10 @@
 #define R_DIRECTION 26
 #define R_ENABLE 27
 
+#define SERVO_PENUP 90
+#define SERVO_PENDOWN 35
+#define SERVO 33 
+
 #define NW_SSID "network_ssid"
 #define NW_PASSWORD "network_password"
 #define SOCKET_PORT 8180
