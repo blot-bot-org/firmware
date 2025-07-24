@@ -16,6 +16,7 @@ namespace BotState {
 
         state.active_client = WiFiClient();
         state.last_known_connected = false;
+        state.first_buf_received = false;
 
         reset_state(&state);
         state.overall_instructions_completed = 0;
@@ -40,6 +41,7 @@ namespace BotState {
         state->buffer_idx = 0;
         state->ins_buffer_len = 0;
         state->paused = false;
+        state->first_buf_received = false;
     }
 
 }

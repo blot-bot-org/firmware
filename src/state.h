@@ -28,6 +28,7 @@ namespace BotState {
         unsigned int buffer_idx; // the instruction index of the buffer
         unsigned int overall_instructions_completed; // the num of pairs of motor movements processed
         bool awaiting_instructions; // initially true, so no motor code ran
+        bool first_buf_received;
     
         bool paused; // when true, motors will finish stepping current ins, then stop. independent of awaiting_instructions 
     } State;

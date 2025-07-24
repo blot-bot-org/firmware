@@ -27,7 +27,7 @@ void setup() {
     Serial.begin(BAUD_RATE);
     pinMode(LED, OUTPUT);
     gondola_servo.attach(33);
-    gondola_servo.write(0); // pen up
+    gondola_servo.write(SERVO_PENUP); // pen up
 
     BotState::reset_state(&state);
 
@@ -59,7 +59,7 @@ void loop() {
         Serial.println("[debug] The client has disconnected!");
         state.active_client.stop();
 
-        gondola_servo.write(0); // pen up
+        gondola_servo.write(SERVO_PENUP); // pen up
 
         state.last_known_connected = false;
     }
@@ -69,18 +69,19 @@ void loop() {
     
     
     if(state.active_client.available() != 0) { // we have bytes available for reading
-        char header_byte = state.active_client.read();
-        if(header_byte == 0xFF) {
+        int header_byte_int = state.active_client.read();
+        if(header_byte_int == -1) {
             Serial.println("[err] Error reading header byte from client. Byte was said to be available, but wasn't.");
-            esp32_exit();
+            return;
         }
+        char header_byte = static_cast<char>(header_byte_int);
 
         // we check the header byte to see what the client is intending
         switch(header_byte) {
             case 0x00: {
                 Serial.println("[debug] A new client has initialised a drawing. Resetting the firmware state...");
                 BotState::reset_state(&state);
-                gondola_servo.write(0); // pen up
+                gondola_servo.write(SERVO_PENUP); // pen up
 
                 // load any other useful initialising parameters here.
                 unsigned char header_bytes[20];
@@ -112,7 +113,17 @@ void loop() {
                 // so what ill do is check if the length of the instruction bytes is a multiple
                 // of 5, if not, trim it to be so. this limits instructions to not be penup/pendown.
                 
-                state.buffer_idx = state.ins_buffer_len % 5;
+                state.buffer_idx = (state.first_buf_received ? 0 : 1);
+                state.first_buf_received = true;
+
+                /*
+                Serial.println("Header HEX: ");
+                for(int i = 0; i < 15; i++) {
+                    Serial.print(state.ins_buffer[i], HEX);
+                    Serial.print(" ");
+                }
+                Serial.println();
+                */
 
                 // gotta ignore the header byte idk why it's not being removed from the buffer
                 // when im LITERALLY READING IT EARLIER but honestly idec spent too long on this lets just make it work
@@ -126,7 +137,7 @@ void loop() {
                 state.active_client.stop();
                 state.last_known_connected = false;
                 state.overall_instructions_completed = 0;
-                gondola_servo.write(0); // pen up
+                gondola_servo.write(SERVO_PENUP); // pen up
 
                 return;
             }
@@ -165,13 +176,19 @@ void loop() {
                 state.active_client.stop();
                 state.last_known_connected = false;
                 state.overall_instructions_completed = 0;
-                gondola_servo.write(0); // pen up
+                gondola_servo.write(SERVO_PENUP); // pen up
 
                 return;
             }
 
             default: {
                 Serial.println("[err] Error receiving client data. The header byte was invalid.");
+
+                while(state.active_client.available() != 0) {
+                    char header_byte = state.active_client.read();
+                    Serial.println(header_byte, HEX);
+                };
+
                 esp32_exit();
             }
         }
@@ -228,10 +245,10 @@ void loop() {
     if (command_length == 5 && state.ins_buffer[state.buffer_idx + 4] == 0x0A || state.ins_buffer[state.buffer_idx + 4] == 0x0B) {
         
         if(state.ins_buffer[state.buffer_idx + 4] == 0x0A) {
-            gondola_servo.write(0);
+            gondola_servo.write(SERVO_PENUP);
             delay(300);
         } else {
-            gondola_servo.write(90);
+            gondola_servo.write(SERVO_PENDOWN);
             delay(300);
         }
 
