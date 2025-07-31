@@ -12,15 +12,17 @@
 #define R_DIRECTION 26
 #define R_ENABLE 27
 
-#define SERVO_PENUP 90
-#define SERVO_PENDOWN 35
 #define SERVO 33 
+#define SERVO_PENUP 60
+#define SERVO_PENDOWN 10
+#define SERVO_DOWN_DELAY 20
+#define SERVO_UP_DELAY 10
 
 #define NW_SSID "network_ssid"
 #define NW_PASSWORD "network_password"
 #define SOCKET_PORT 8180
 
-#define MAX_MOTOR_SPEED 500
+#define MAX_MOTOR_SPEED 600
 #define MIN_PULSE_WIDTH 300
 
 #define INS_BUFFER_SIZE 32768

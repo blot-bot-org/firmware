@@ -1,4 +1,5 @@
 #include <cstring>
+#include <ArduinoOTA.h>
 #include <definitions.h>
 #include <communications.h>
 #include <motor_controller.h>
@@ -8,6 +9,7 @@
 #include <WiFi.h>
 #include <AccelStepper.h>
 #include <ESP32Servo.h>
+#include <sys/types.h>
 
 
 /* ----- globals ----- */
@@ -16,8 +18,16 @@ BotState::State state;
 
 AccelStepper left_motor = init_stepper_motor(L_PULSE, L_DIRECTION);
 AccelStepper right_motor = init_stepper_motor(R_PULSE, R_DIRECTION);
+
 Servo gondola_servo;
+unsigned short servo_state = SERVO_PENUP + 1; // + 1 or else it'll think it doesnt have to move
+
+bool otaUpdating = false; // true when an OTA update is active
 /* ------------------ */
+
+void pen_up();
+void pen_down();
+
 
 
 /// 
@@ -27,12 +37,29 @@ void setup() {
     Serial.begin(BAUD_RATE);
     pinMode(LED, OUTPUT);
     gondola_servo.attach(SERVO);
-    gondola_servo.write(SERVO_PENUP); // pen up
+    pen_up();
 
     BotState::reset_state(&state);
 
     LocalNetwork::wifi_connect();
     socket_server.begin();
+
+
+    // initialise OTA library
+    ArduinoOTA
+    .onStart([]() {
+        otaUpdating = true;
+    })
+    .onEnd([]() {
+        otaUpdating = false;
+        digitalWrite(LED, HIGH);
+        
+    })
+    .onError([](ota_error_t error) {
+        otaUpdating = false;  // Make sure to clear it on error too
+    });
+
+  ArduinoOTA.begin();
 
 }
 
@@ -41,6 +68,11 @@ void setup() {
 /// Loops on the ESP32.
 ///
 void loop() {
+
+    // handle an OTA update if needed
+    ArduinoOTA.handle();
+    if(otaUpdating) { return; }
+
 
     if (socket_server.hasClient()) {
         if(!state.last_known_connected) { // client trying to join, when we have no active client. therefore register it.
@@ -59,7 +91,7 @@ void loop() {
         Serial.println("[debug] The client has disconnected!");
         state.active_client.stop();
 
-        gondola_servo.write(SERVO_PENUP); // pen up
+        pen_up();
 
         state.last_known_connected = false;
     }
@@ -81,7 +113,7 @@ void loop() {
             case 0x00: {
                 Serial.println("[debug] A new client has initialised a drawing. Resetting the firmware state...");
                 BotState::reset_state(&state);
-                gondola_servo.write(SERVO_PENUP); // pen up
+                pen_up();
 
                 // load any other useful initialising parameters here.
                 unsigned char header_bytes[20];
@@ -137,7 +169,7 @@ void loop() {
                 state.active_client.stop();
                 state.last_known_connected = false;
                 state.overall_instructions_completed = 0;
-                gondola_servo.write(SERVO_PENUP); // pen up
+                pen_up();
 
                 return;
             }
@@ -176,7 +208,7 @@ void loop() {
                 state.active_client.stop();
                 state.last_known_connected = false;
                 state.overall_instructions_completed = 0;
-                gondola_servo.write(SERVO_PENUP); // pen up
+                pen_up();
 
                 return;
             }
@@ -245,11 +277,9 @@ void loop() {
     if (command_length == 5 && state.ins_buffer[state.buffer_idx + 4] == 0x0A || state.ins_buffer[state.buffer_idx + 4] == 0x0B) {
         
         if(state.ins_buffer[state.buffer_idx + 4] == 0x0A) {
-            gondola_servo.write(SERVO_PENUP);
-            delay(300);
+            pen_up();
         } else {
-            gondola_servo.write(SERVO_PENDOWN);
-            delay(300);
+            pen_down();
         }
 
     }
@@ -279,3 +309,29 @@ void loop() {
 
     state.buffer_idx = next_eoi_idx + 1; // +1 to move the idx to the next real instruction byte, otherwise its on the 0x0C
 }
+
+
+
+
+void pen_up() {
+    if(SERVO_PENUP == servo_state) return; // if servo is already in position
+
+    for(int i = SERVO_PENDOWN; i <= SERVO_PENUP; i++) {
+        gondola_servo.write(i);
+        servo_state = i;
+        delay(SERVO_UP_DELAY);
+    }
+    delay(500); // delay for a bit, just to allow pen to stabilise
+}
+
+void pen_down() {
+    if(SERVO_PENDOWN == servo_state) return; // if servo is already in position
+    
+    for(int i = SERVO_PENUP; i >= SERVO_PENDOWN; i--) {
+        gondola_servo.write(i);
+        servo_state = i;
+        delay(SERVO_DOWN_DELAY);
+    }
+    delay(100); // delay for a bit, just to allow pen to stabilise
+}
+
