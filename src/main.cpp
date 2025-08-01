@@ -20,7 +20,7 @@ AccelStepper left_motor = init_stepper_motor(L_PULSE, L_DIRECTION);
 AccelStepper right_motor = init_stepper_motor(R_PULSE, R_DIRECTION);
 
 Servo gondola_servo;
-unsigned short servo_state = SERVO_PENUP + 1; // + 1 or else it'll think it doesnt have to move
+unsigned short servo_state = SERVO_PENUP - 1; // - 1 or else it'll think it doesnt have to move
 
 bool otaUpdating = false; // true when an OTA update is active
 /* ------------------ */
