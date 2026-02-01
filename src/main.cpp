@@ -16,8 +16,8 @@
 WiFiServer socket_server = TcpServer::generate_server(SOCKET_PORT);
 BotState::State state;
 
-AccelStepper left_motor = init_stepper_motor(L_PULSE, L_DIRECTION);
-AccelStepper right_motor = init_stepper_motor(R_PULSE, R_DIRECTION);
+AccelStepper left_motor = init_stepper_motor(L_ENABLE, L_PULSE, L_DIRECTION);
+AccelStepper right_motor = init_stepper_motor(R_ENABLE, R_PULSE, R_DIRECTION);
 
 Servo gondola_servo;
 unsigned short servo_state = SERVO_PENUP - 1; // - 1 or else it'll think it doesnt have to move
@@ -27,6 +27,8 @@ bool otaUpdating = false; // true when an OTA update is active
 
 void pen_up();
 void pen_down();
+void enable_motors();
+void disable_motors();
 
 
 
@@ -37,6 +39,7 @@ void setup() {
     Serial.begin(BAUD_RATE);
     pinMode(LED, OUTPUT);
     gondola_servo.attach(SERVO);
+    disable_motors();
     pen_up();
 
     BotState::reset_state(&state);
@@ -92,6 +95,7 @@ void loop() {
         state.active_client.stop();
 
         pen_up();
+        disable_motors();
 
         state.last_known_connected = false;
     }
@@ -112,15 +116,17 @@ void loop() {
         switch(header_byte) {
             case 0x00: {
                 Serial.println("[debug] A new client has initialised a drawing. Resetting the firmware state...");
+
                 BotState::reset_state(&state);
                 pen_up();
+                enable_motors();
 
                 // load any other useful initialising parameters here.
                 unsigned char header_bytes[20];
                 TcpServer::gen_header_bytes(header_bytes, sizeof(header_bytes), state.overall_instructions_completed);
 
                 state.active_client.write(header_bytes, sizeof(header_bytes));
-                Serial.println("[debug] Send header bytes!");
+                Serial.println("[debug] Sent header bytes!");
 
                 state.active_client.write(0x03); // ask for the initial instructions
                 
@@ -170,6 +176,7 @@ void loop() {
                 state.last_known_connected = false;
                 state.overall_instructions_completed = 0;
                 pen_up();
+                disable_motors();
 
                 return;
             }
@@ -209,7 +216,56 @@ void loop() {
                 state.last_known_connected = false;
                 state.overall_instructions_completed = 0;
                 pen_up();
+                disable_motors();
 
+                return;
+            }
+
+
+            case 0x06: {
+                if(state.overall_instructions_completed != 0) { // impossible anyway
+                    state.active_client.write(0x01);
+                    return;
+                }
+
+                pen_up();
+                disable_motors();
+
+                Serial.println("Manual control requested!");
+
+                char target_control = state.active_client.read();
+                short target_data = (static_cast<short>(state.active_client.read() << 8) | state.active_client.read());
+                char assumed_termination = state.active_client.read();
+                if(assumed_termination != 0x0C) {
+                    Serial.println("Error in manual control, unknown data format. Termination byte not present");
+
+                    state.active_client.write(0x02);
+                    state.active_client.stop();
+                    state.last_known_connected = false;
+                    return;
+                }
+                Serial.print("Got data: ");
+                Serial.print(target_control, HEX);
+                Serial.print(" -> ");
+                Serial.println(target_data);
+
+                if(target_control == 0x02) {
+                    target_data = max(min(target_data, static_cast<short>(180)), static_cast<short>(0)); // clamp value between 0 and 180 degrees
+                    gondola_servo.write(target_data);
+                }
+
+                if(target_control == 0x03) {
+                    if(target_data == 0) {
+                        disable_motors();
+                    } else {
+                        enable_motors();
+                    }
+                }
+                
+
+                state.active_client.write(0x01); // happy byte
+                state.active_client.stop();
+                state.last_known_connected = false;
                 return;
             }
 
@@ -322,6 +378,8 @@ void pen_up() {
         delay(SERVO_UP_DELAY);
     }
     delay(500); // delay for a bit, just to allow pen to stabilise
+
+    Serial.println("PEN UP!");
 }
 
 void pen_down() {
@@ -333,5 +391,16 @@ void pen_down() {
         delay(SERVO_DOWN_DELAY);
     }
     delay(100); // delay for a bit, just to allow pen to stabilise
+
+    Serial.println("PEN DOWN!");
 }
 
+void enable_motors() {
+    left_motor.enableOutputs();
+    right_motor.enableOutputs();
+}
+
+void disable_motors() {
+    left_motor.disableOutputs();
+    right_motor.disableOutputs();
+}
