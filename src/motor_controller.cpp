@@ -73,9 +73,11 @@ bool has_movement(AccelStepper *lm, AccelStepper *rm) {
 /// # Returns:
 /// - An initialised AccelStepper object, with pins defined by `definitions.h`
 ///
-AccelStepper init_stepper_motor(uint8_t pulse_pin, uint8_t direction_pin) {
+AccelStepper init_stepper_motor(uint8_t enable_pin, uint8_t pulse_pin, uint8_t direction_pin) {
     // interface type is 1, https://www.airspayce.com/mikem/arduino/AccelStepper/classAccelStepper.html#a73bdecf1273d98d8c5fbcb764cabeea5
     AccelStepper object(1, pulse_pin, direction_pin);
+    object.setEnablePin(enable_pin);
+    object.setPinsInverted(false, false, true);
 
     object.setMaxSpeed(MAX_MOTOR_SPEED);
     object.setMinPulseWidth(MIN_PULSE_WIDTH);
